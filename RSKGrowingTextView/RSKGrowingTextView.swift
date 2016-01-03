@@ -230,7 +230,7 @@ enum RSKGrowingTextViewLayoutApproach {
                     delay: 0.0,
                     options: [.AllowUserInteraction, .BeginFromCurrentState],
                     animations: { [unowned self] () -> Void in
-                        self.setHeiht(estimatedHeight)
+                        self.setHeight(estimatedHeight)
                         self.heightChangeUserActionsBlock?(growingTextViewHeightBegin: oldHeight, growingTextViewHeightEnd: estimatedHeight)
                         
                         self.superview?.layoutIfNeeded()
@@ -243,7 +243,7 @@ enum RSKGrowingTextViewLayoutApproach {
                     }
                 )
             } else {
-                setHeiht(estimatedHeight)
+                setHeight(estimatedHeight)
                 heightChangeUserActionsBlock?(growingTextViewHeightBegin: oldHeight, growingTextViewHeightEnd: estimatedHeight)
                 
                 superview?.layoutIfNeeded()
@@ -286,7 +286,7 @@ enum RSKGrowingTextViewLayoutApproach {
         }
     }
     
-    private func setHeiht(height: CGFloat) {
+    private func setHeight(height: CGFloat) {
         switch self.layoutApproach {
         case .Constraint(let constraint):
             constraint.constant = height
