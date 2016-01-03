@@ -40,6 +40,9 @@ import RSKPlaceholderTextView
 }
 
 /// A light-weight UITextView subclass that automatically grows and shrinks based on the size of user input and can be constrained by maximum and minimum number of lines.
+///
+/// NOTE: This class ignores any value assigned to delaysContentTouches, and forces it to
+/// always be `false` (for an internal workaround).
 @IBDesignable public class RSKGrowingTextView: RSKPlaceholderTextView {
 
     // MARK: - Private Properties
@@ -142,6 +145,31 @@ import RSKPlaceholderTextView
         }
     }
     
+    private var _requestedScrollEnabled: Bool = true
+    private var suppressRequestedScrollEnabledUpdate: Bool = false
+    override public var scrollEnabled: Bool {
+        didSet {
+            // This prevents a recursive call, while always keeping
+            // scrollEnabled == true and caching the original scrollEnabled
+            // value cached in _requestedScrollEnabled.
+            //
+            // Since UIScrollView.scrollEnabled isn't a simple ivar-backed
+            // property, we can't just override the setter in this class;
+            // we need to actually call the super's setter again.
+
+            if suppressRequestedScrollEnabledUpdate == false {
+                _requestedScrollEnabled = scrollEnabled
+            }
+            
+            suppressRequestedScrollEnabledUpdate = false
+            
+            if (scrollEnabled == false) {
+                suppressRequestedScrollEnabledUpdate = true
+                scrollEnabled = true
+            }
+        }
+    }
+    
     // MARK: - Object Lifecycle
     
     required public init?(coder aDecoder: NSCoder) {
@@ -164,6 +192,24 @@ import RSKPlaceholderTextView
         }
     }
     
+    public override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
+        // WORKAROUND: Scrolling suppression
+        // This workaround tricks UITextView into laying out text + resizing the contentView
+        // internally, when we want scrolling disabled.
+        //
+        // To accomplish this, we always force scrollEnabled = true + cache any value assigned to it.
+        // Then, we flip the actual value of scrollEnabled, according to what we cached, before
+        // calling super.touchesBegan(), which is where UIKit does all of the text layout +
+        // contentView resizing.
+        if _requestedScrollEnabled == false {
+            scrollEnabled = false
+        }
+        
+        super.touchesBegan(touches, withEvent: event)
+
+        scrollEnabled = true
+    }
+    
     // MARK: - Helper Methods
     
     private func commonInitializer() {
@@ -179,6 +225,10 @@ import RSKPlaceholderTextView
         }
         
         estimationLayoutManager.addTextContainer(estimationTextContainer)
+        
+        // Required for scrolling suppression workaround
+        // See comments in touchesBegan()
+        delaysContentTouches = false
     }
     
     private func heightForNumberOfLines(numberOfLines: Int) -> CGFloat {
